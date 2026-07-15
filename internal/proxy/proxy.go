@@ -1,10 +1,12 @@
 // Package proxy is a metering reverse proxy in front of the LLM APIs. It tees
-// responses to extract token usage, feeds the breaker engine, and refuses
-// further requests with HTTP 402 once the budget has tripped.
+// responses to extract token usage, feeds a Guard (the budget authority), and
+// refuses further requests with HTTP 402 once the Guard disallows them.
 package proxy
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,13 +17,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gmaOCR/breaker/internal/breaker"
 	"github.com/gmaOCR/breaker/internal/core"
 	"github.com/gmaOCR/breaker/internal/metering"
 	"github.com/gmaOCR/breaker/internal/pricing"
 )
 
+// Guard is the budget authority the proxy consults. `run` uses a one-shot
+// breaker.Engine; `serve` uses a rolling-window guard. Both implement this.
+type Guard interface {
+	// Allowed reports whether a new request may proceed, with the reason if not.
+	Allowed() (bool, core.TripReason)
+	// Record ingests a completed response's metered spend.
+	Record(core.SpendEvent) (bool, core.TripReason)
+}
+
 // Config configures the proxy. Empty upstreams default to the real API hosts.
+// Session, when set, pins all traffic to one budget (run mode); when empty the
+// proxy derives a session per request (serve mode).
 type Config struct {
 	Session           core.SessionID
 	AnthropicUpstream string
@@ -30,7 +42,7 @@ type Config struct {
 
 // Proxy is an http.Handler.
 type Proxy struct {
-	engine  *breaker.Engine
+	guard   Guard
 	prices  *pricing.Table
 	session core.SessionID
 	anth    *url.URL
@@ -38,8 +50,8 @@ type Proxy struct {
 	rp      *httputil.ReverseProxy
 }
 
-// New builds a Proxy bound to a breaker engine and pricing table.
-func New(engine *breaker.Engine, prices *pricing.Table, cfg Config) (*Proxy, error) {
+// New builds a Proxy bound to a Guard and pricing table.
+func New(guard Guard, prices *pricing.Table, cfg Config) (*Proxy, error) {
 	if cfg.AnthropicUpstream == "" {
 		cfg.AnthropicUpstream = "https://api.anthropic.com"
 	}
@@ -54,7 +66,7 @@ func New(engine *breaker.Engine, prices *pricing.Table, cfg Config) (*Proxy, err
 	if err != nil {
 		return nil, fmt.Errorf("proxy: bad openai upstream: %w", err)
 	}
-	p := &Proxy{engine: engine, prices: prices, session: cfg.Session, anth: anth, oai: oai}
+	p := &Proxy{guard: guard, prices: prices, session: cfg.Session, anth: anth, oai: oai}
 	p.rp = &httputil.ReverseProxy{
 		Director:       p.director,
 		ModifyResponse: p.modifyResponse,
@@ -65,8 +77,8 @@ func New(engine *breaker.Engine, prices *pricing.Table, cfg Config) (*Proxy, err
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	prov := providerForPath(r.URL.Path)
-	if p.engine.Tripped() {
-		writeBudgetError(w, prov, p.engine.Reason())
+	if ok, reason := p.guard.Allowed(); !ok {
+		writeBudgetError(w, prov, reason)
 		return
 	}
 	if prov == core.ProviderOpenAI {
@@ -90,13 +102,14 @@ func (p *Proxy) director(r *http.Request) {
 
 func (p *Proxy) modifyResponse(resp *http.Response) error {
 	prov := providerForPath(resp.Request.URL.Path)
+	sess := p.sessionFor(resp.Request)
 	record := func(u core.Usage, model string, ok bool) {
 		if !ok {
 			return
 		}
 		cost, matched := p.prices.Cost(model, u)
-		p.engine.Record(core.SpendEvent{
-			Session:   p.session,
+		p.guard.Record(core.SpendEvent{
+			Session:   sess,
 			Provider:  prov,
 			Model:     model,
 			Usage:     u,
@@ -136,12 +149,36 @@ func (p *Proxy) modifyResponse(resp *http.Response) error {
 }
 
 func (p *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
-	if p.engine.Tripped() {
-		writeBudgetError(w, providerForPath(r.URL.Path), p.engine.Reason())
+	if ok, reason := p.guard.Allowed(); !ok {
+		writeBudgetError(w, providerForPath(r.URL.Path), reason)
 		return
 	}
 	w.WriteHeader(http.StatusBadGateway)
 	_, _ = io.WriteString(w, "breaker: upstream error: "+err.Error())
+}
+
+// sessionFor attributes a request to a budget/session. Run mode pins one
+// session; serve mode groups by an explicit header, else the API key hash
+// (never the raw key), else the remote address.
+func (p *Proxy) sessionFor(r *http.Request) core.SessionID {
+	if p.session != "" {
+		return p.session
+	}
+	if h := r.Header.Get("X-Breaker-Session"); h != "" {
+		return core.SessionID(h)
+	}
+	if key := apiKey(r); key != "" {
+		sum := sha256.Sum256([]byte(key))
+		return core.SessionID("key:" + hex.EncodeToString(sum[:])[:12])
+	}
+	return core.SessionID(r.RemoteAddr)
+}
+
+func apiKey(r *http.Request) string {
+	if k := r.Header.Get("x-api-key"); k != "" {
+		return k
+	}
+	return strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 }
 
 func (p *Proxy) maybeInjectUsage(r *http.Request) {

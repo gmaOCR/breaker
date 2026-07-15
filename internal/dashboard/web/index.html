@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>breaker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>breaker<span class="tag">cost circuit-breaker</span></h1>
+    <span id="live" class="live off">connecting…</span>
+  </header>
+  <main>
+    <section class="card gauge">
+      <div class="amounts">
+        <span id="spent">$0.00</span>
+        <span class="of">/ <span id="budget">$0.00</span> <span id="window" class="window">window</span></span>
+      </div>
+      <div class="bar"><div id="fill" class="fill"></div></div>
+      <div class="row">
+        <span id="pct" class="pct">0%</span>
+        <button id="kill" type="button">KILL</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>Sessions <span class="dim">(this window)</span></h2>
+      <table><tbody id="sessions"></tbody></table>
+    </section>
+
+    <section class="card">
+      <h2>Recent activity</h2>
+      <table><tbody id="recent"></tbody></table>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

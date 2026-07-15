@@ -111,6 +111,18 @@ func (e *Engine) Tripped() bool {
 	return e.tripped
 }
 
+// Allowed reports whether a new request may proceed (the breaker has not
+// tripped). It satisfies the proxy.Guard interface so the same proxy serves
+// both `run` (this one-shot engine) and `serve` (a rolling-window guard).
+func (e *Engine) Allowed() (bool, core.TripReason) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.tripped {
+		return false, e.reason
+	}
+	return true, core.TripReason{}
+}
+
 // Reason returns the trip reason (zero value if not tripped).
 func (e *Engine) Reason() core.TripReason {
 	e.mu.Lock()

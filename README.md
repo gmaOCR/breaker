@@ -42,7 +42,22 @@ breaker run --tokens 500000 -- python my_agent.py
 
 # Point at an OpenAI-compatible endpoint:
 breaker run --budget 1.00 --openai-upstream https://api.openai.com -- python my_agent.py
+
+# Trip EARLY on a runaway loop, before the absolute cap is even reached:
+breaker run --budget 5.00 --max-calls-per-min 120 -- python my_agent.py
 ```
+
+### Shared budget across many runs — `breaker serve`
+
+Run one long-lived proxy with a rolling budget (per hour or per day) shared across every agent, CI job, and cron task that points at it, with a live web dashboard:
+
+```console
+breaker serve --daily 50 --journal ~/.breaker/spend.jsonl
+# dashboard: http://127.0.0.1:8900/   (live gauge, per-session spend, KILL button)
+export ANTHROPIC_BASE_URL=http://127.0.0.1:8900   # then, in each agent's env
+```
+
+Once the rolling window's spend crosses the budget, every request gets a `402` until older spend ages out of the window. `--journal` makes the window survive restarts.
 
 When the cap trips, subsequent API calls get a clean `402` (in the provider's own error shape, so the SDK surfaces it as fatal) and the process receives `SIGTERM` → `SIGKILL`. The exit code is `137`.
 
@@ -66,7 +81,13 @@ When the cap trips, subsequent API calls get a clean `402` (in the provider's ow
 
 ## Status
 
-Early. The **per-run hard cap** (the hero use case) works and is covered by an end-to-end kill test. On the roadmap: a velocity/loop guard that trips *before* the absolute cap, a `serve` mode with a rolling per-day budget across many runs, and a one-page local dashboard. See [`docs/16-roadmap-nongoals.md`](docs/16-roadmap-nongoals.md).
+Early but functional — all three core use cases are built and covered by end-to-end tests:
+
+1. **Per-run hard cap** — `breaker run --budget/--tokens` (proven: a runaway run is SIGKILLed at budget, exit 137).
+2. **Velocity guard** — `--max-per-min` / `--max-calls-per-min` trip *before* the absolute cap, catching loops early.
+3. **Rolling shared budget** — `breaker serve --daily/--hourly` + live dashboard + persistent journal (proven: 402 once the window budget is crossed).
+
+On the roadmap: trip notifications (webhook/desktop) and a `--strict` zero-overshoot mode. See [`docs/16-roadmap-nongoals.md`](docs/16-roadmap-nongoals.md).
 
 ## Providers
 

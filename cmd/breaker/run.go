@@ -13,6 +13,7 @@ import (
 
 	"github.com/gmaOCR/breaker/internal/breaker"
 	"github.com/gmaOCR/breaker/internal/core"
+	"github.com/gmaOCR/breaker/internal/policy"
 	"github.com/gmaOCR/breaker/internal/pricing"
 	"github.com/gmaOCR/breaker/internal/proxy"
 	"github.com/gmaOCR/breaker/internal/runner"
@@ -27,6 +28,8 @@ func cmdRun(args []string) int {
 	pricesF := fs.String("prices", "", "path to a pricing override JSON file")
 	anthUp := fs.String("anthropic-upstream", "", "override Anthropic upstream base URL")
 	oaiUp := fs.String("openai-upstream", "", "override OpenAI upstream base URL")
+	maxPerMin := fs.Float64("max-per-min", 0, "velocity guard: trip if spend exceeds this USD/minute (0 = off)")
+	maxCalls := fs.Int("max-calls-per-min", 0, "velocity guard: trip if calls exceed this per minute (0 = off)")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: breaker run [flags] -- <command> [args...]")
 		fs.PrintDefaults()
@@ -49,7 +52,11 @@ func cmdRun(args []string) int {
 		fmt.Fprintf(os.Stderr, "breaker: %v\n", err)
 		return 1
 	}
-	engine := breaker.New(breaker.Config{BudgetUSD: *budget, TokenBudget: *tokens})
+	pols := []policy.Policy{policy.HardCap{}}
+	if *maxPerMin > 0 || *maxCalls > 0 {
+		pols = append(pols, policy.NewVelocity(*maxPerMin, *maxCalls))
+	}
+	engine := breaker.New(breaker.Config{BudgetUSD: *budget, TokenBudget: *tokens, Policies: pols})
 	session := newSessionID()
 	pxy, err := proxy.New(engine, prices, proxy.Config{
 		Session:           session,

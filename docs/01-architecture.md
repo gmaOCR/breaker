@@ -8,10 +8,17 @@ Single Go binary, standard-library only. Packages under `internal/`:
 | `pricing` | Embedded, dated price table + cost math. `Cost(model, usage) → (usd, matched)`; unknown model → high fallback + `matched=false`. |
 | `metering` | Extract token usage from proxied responses. Streaming (SSE) and non-streaming JSON, for Anthropic and OpenAI wire formats. |
 | `breaker` | The budget engine: accumulates spend, runs policies, fires a one-shot trip on a channel. |
-| `policy` | Pluggable trip checks. `HardCap` (USD/token budget) today; velocity/dedup on the roadmap. |
-| `proxy` | `httputil.ReverseProxy` that tees responses through `metering`, records to the engine, and returns 402 once tripped. |
+| `policy` | Pluggable trip checks: `HardCap` (USD/token budget) and `Velocity` (rolling per-minute spend/call rate, trips before the cap). |
+| `proxy` | `httputil.ReverseProxy` that tees responses through `metering`, records to a `Guard`, and returns 402 once the guard disallows. |
 | `runner` | Launches the child in its own process group, injects the proxy env, and escalates SIGTERM→SIGKILL on trip. |
-| `config` / `dashboard` / `notify` / `store` | Reserved for `serve`, the dashboard, notifications, and rolling-window persistence (roadmap). |
+| `store` | Rolling-window spend store for `serve` — in-memory events + optional append-only JSONL journal. |
+| `dashboard` | Embedded one-page web UI for `serve` (live gauge, per-session spend, activity log, KILL button). |
+| `notify` | Reserved for trip notifications (roadmap). |
+
+The proxy depends on a small `Guard` interface (`Allowed() / Record()`), not a
+concrete engine — so `run` plugs in the one-shot `breaker.Engine` (which also
+drives the killer via its trip channel) and `serve` plugs in a rolling-window
+guard, sharing all the metering/pricing/proxy code.
 
 ## Request path (`breaker run`)
 

@@ -1,0 +1,54 @@
+:root {
+  --bg: #0f1216;
+  --card: #171b21;
+  --line: #262c35;
+  --dim: #8b95a3;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --over: #f85149;
+  --accent: #58a6ff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #e6e9ef;
+  font: 14px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; border-bottom: 1px solid var(--line);
+}
+h1 { font-size: 18px; margin: 0; letter-spacing: .5px; }
+h1 .tag { color: var(--dim); font-weight: 400; font-size: 12px; margin-left: 10px; }
+.live { color: var(--ok); font-size: 12px; }
+.live.off { color: var(--over); }
+main { max-width: 720px; margin: 0 auto; padding: 24px; display: grid; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin: 0 0 12px; }
+h2 .dim { text-transform: none; letter-spacing: 0; }
+.gauge .amounts { font-size: 30px; font-weight: 600; }
+.gauge .of { color: var(--dim); font-size: 15px; font-weight: 400; }
+.gauge .window { color: var(--accent); }
+.bar { height: 12px; background: #0b0e12; border-radius: 6px; overflow: hidden; margin: 14px 0 10px; border: 1px solid var(--line); }
+.fill { height: 100%; width: 0; background: var(--ok); transition: width .3s ease, background .3s ease; }
+.fill.warn { background: var(--warn); }
+.fill.over { background: var(--over); }
+.row { display: flex; align-items: center; justify-content: space-between; }
+.pct { color: var(--dim); }
+button#kill {
+  background: transparent; color: var(--over); border: 1px solid var(--over);
+  border-radius: 6px; padding: 6px 16px; font: inherit; font-weight: 700; cursor: pointer;
+  letter-spacing: 1px;
+}
+button#kill:hover { background: var(--over); color: #fff; }
+.status { margin-top: 12px; color: var(--over); font-weight: 600; min-height: 1.2em; }
+table { width: 100%; border-collapse: collapse; }
+td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.dim { color: var(--dim); }
+.est { color: var(--warn); font-size: 11px; border: 1px solid var(--warn); border-radius: 4px; padding: 0 4px; }
+@media (prefers-color-scheme: light) {
+  :root { --bg:#f6f8fa; --card:#fff; --line:#d0d7de; --dim:#57606a; }
+  body { color: #1f2328; }
+}
