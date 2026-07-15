@@ -1,0 +1,17 @@
+{
+  "version": "2026-07-15",
+  "unit": "per_mtok",
+  "models": {
+    "claude-fable-5*":       {"input": 10,  "output": 50, "cache_write": 12.5,  "cache_read": 1.0},
+    "claude-opus-4-[5-8]*":  {"input": 5,   "output": 25, "cache_write": 6.25,  "cache_read": 0.5},
+    "claude-sonnet-5*":      {"input": 3,   "output": 15, "cache_write": 3.75,  "cache_read": 0.3},
+    "claude-sonnet-4-*":     {"input": 3,   "output": 15, "cache_write": 3.75,  "cache_read": 0.3},
+    "claude-haiku-4-5*":     {"input": 1,   "output": 5,  "cache_write": 1.25,  "cache_read": 0.1},
+    "gpt-5.5*":              {"input": 5,   "output": 30, "cache_read": 0.5},
+    "gpt-4o":                {"input": 2.5, "output": 10, "cache_read": 1.25},
+    "gpt-4o-mini":           {"input": 0.15,"output": 0.6,"cache_read": 0.075},
+    "gpt-4.1*":              {"input": 2,   "output": 8,  "cache_read": 0.5},
+    "o3*":                   {"input": 2,   "output": 8,  "cache_read": 0.5}
+  },
+  "fallback": {"input": 20, "output": 80, "cache_write": 25, "cache_read": 2}
+}
