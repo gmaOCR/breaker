@@ -13,6 +13,7 @@ import (
 
 	"github.com/gmaOCR/breaker/internal/breaker"
 	"github.com/gmaOCR/breaker/internal/core"
+	"github.com/gmaOCR/breaker/internal/notify"
 	"github.com/gmaOCR/breaker/internal/policy"
 	"github.com/gmaOCR/breaker/internal/pricing"
 	"github.com/gmaOCR/breaker/internal/proxy"
@@ -30,6 +31,9 @@ func cmdRun(args []string) int {
 	oaiUp := fs.String("openai-upstream", "", "override OpenAI upstream base URL")
 	maxPerMin := fs.Float64("max-per-min", 0, "velocity guard: trip if spend exceeds this USD/minute (0 = off)")
 	maxCalls := fs.Int("max-calls-per-min", 0, "velocity guard: trip if calls exceed this per minute (0 = off)")
+	maxRepeats := fs.Int("max-repeats", 0, "loop guard: trip if the same request repeats more than this per minute (0 = off)")
+	notifyHook := fs.String("notify-webhook", "", "POST a JSON alert to this URL when the run trips")
+	notifyDesk := fs.Bool("notify-desktop", false, "show a desktop notification when the run trips")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: breaker run [flags] -- <command> [args...]")
 		fs.PrintDefaults()
@@ -55,6 +59,9 @@ func cmdRun(args []string) int {
 	pols := []policy.Policy{policy.HardCap{}}
 	if *maxPerMin > 0 || *maxCalls > 0 {
 		pols = append(pols, policy.NewVelocity(*maxPerMin, *maxCalls))
+	}
+	if *maxRepeats > 0 {
+		pols = append(pols, policy.NewDedup(*maxRepeats))
 	}
 	engine := breaker.New(breaker.Config{BudgetUSD: *budget, TokenBudget: *tokens, Policies: pols})
 	session := newSessionID()
@@ -103,6 +110,7 @@ func cmdRun(args []string) int {
 	fmt.Fprintf(os.Stderr, "breaker: spent $%.4f over %d tokens%s\n", snap.SpentUSD, snap.Tokens, est)
 	if snap.Tripped {
 		fmt.Fprintf(os.Stderr, "breaker: TRIPPED — %s [%s]\n", snap.Reason.Message, snap.Reason.Policy)
+		notify.New(*notifyHook, *notifyDesk).OnTrip(snap.Reason)
 		if code == 0 {
 			code = runner.TripExitCode // child slipped out via 402 before the kill landed
 		}

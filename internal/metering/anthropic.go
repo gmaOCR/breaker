@@ -74,7 +74,7 @@ func (p *anthropicParser) final() (core.Usage, string, bool) {
 }
 
 // NewAnthropicMeter tees an Anthropic SSE response body, extracting token usage.
-func NewAnthropicMeter(src io.ReadCloser, onDone func(core.Usage, string, bool)) io.ReadCloser {
+func NewAnthropicMeter(src io.ReadCloser, onDone Sink) io.ReadCloser {
 	return &meterReader{src: src, parser: &anthropicParser{}, onDone: onDone}
 }
 

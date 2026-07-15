@@ -12,6 +12,7 @@ import (
 
 	"github.com/gmaOCR/breaker/internal/core"
 	"github.com/gmaOCR/breaker/internal/dashboard"
+	"github.com/gmaOCR/breaker/internal/notify"
 	"github.com/gmaOCR/breaker/internal/pricing"
 	"github.com/gmaOCR/breaker/internal/proxy"
 	"github.com/gmaOCR/breaker/internal/store"
@@ -28,6 +29,8 @@ func cmdServe(args []string) int {
 	pricesF := fs.String("prices", "", "pricing override JSON")
 	anthUp := fs.String("anthropic-upstream", "", "override Anthropic upstream base URL")
 	oaiUp := fs.String("openai-upstream", "", "override OpenAI upstream base URL")
+	notifyHook := fs.String("notify-webhook", "", "POST a JSON alert to this URL when the budget trips")
+	notifyDesk := fs.Bool("notify-desktop", false, "show a desktop notification when the budget trips")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: breaker serve [--daily N | --hourly N] [flags]")
 		fs.PrintDefaults()
@@ -63,7 +66,7 @@ func cmdServe(args []string) int {
 	}
 	defer func() { _ = st.Close() }()
 
-	guard := &windowGuard{store: st, budgetUSD: budget, window: window, label: label}
+	guard := &windowGuard{store: st, budgetUSD: budget, window: window, label: label, notifier: notify.New(*notifyHook, *notifyDesk)}
 	// Empty Session → the proxy attributes each request to a session itself.
 	pxy, err := proxy.New(guard, prices, proxy.Config{AnthropicUpstream: *anthUp, OpenAIUpstream: *oaiUp})
 	if err != nil {
@@ -97,10 +100,12 @@ type windowGuard struct {
 	budgetUSD float64
 	window    time.Duration
 	label     string
+	notifier  *notify.Notifier
 
-	mu      sync.Mutex
-	killed  bool
-	killMsg string
+	mu           sync.Mutex
+	killed       bool
+	killMsg      string
+	overNotified bool
 }
 
 func (g *windowGuard) Allowed() (bool, core.TripReason) {
@@ -127,13 +132,34 @@ func (g *windowGuard) Record(ev core.SpendEvent) (bool, core.TripReason) {
 		At: ev.At, Session: ev.Session, Model: ev.Model,
 		CostUSD: ev.CostUSD, Estimated: ev.Estimated,
 	})
+	if g.budgetUSD <= 0 {
+		return false, core.TripReason{}
+	}
+	spent := g.store.WindowSum(g.window)
+	g.mu.Lock()
+	over := spent >= g.budgetUSD
+	fire := over && !g.overNotified
+	g.overNotified = over // edge-trigger: reset when spend ages back below budget
+	g.mu.Unlock()
+	if fire {
+		g.notifier.OnTrip(core.TripReason{
+			Policy:    "window",
+			Message:   fmt.Sprintf("%s budget $%.2f reached ($%.4f spent)", g.label, g.budgetUSD, spent),
+			SpentUSD:  spent,
+			BudgetUSD: g.budgetUSD,
+		})
+	}
 	return false, core.TripReason{}
 }
 
 func (g *windowGuard) Kill(reason string) {
 	g.mu.Lock()
+	first := !g.killed
 	g.killed, g.killMsg = true, reason
 	g.mu.Unlock()
+	if first {
+		g.notifier.OnTrip(core.TripReason{Policy: "manual", Message: reason, BudgetUSD: g.budgetUSD})
+	}
 }
 
 func (g *windowGuard) State() dashboard.State {

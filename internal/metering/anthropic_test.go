@@ -27,7 +27,7 @@ func TestAnthropicMeterStreaming(t *testing.T) {
 	var gotModel string
 	var ok bool
 	r := NewAnthropicMeter(io.NopCloser(strings.NewReader(anthropicSSE)),
-		func(u core.Usage, model string, complete bool) {
+		func(u core.Usage, model string, complete bool, _ int64) {
 			got, gotModel, ok = u, model, complete
 		})
 	// Draining the reader must yield the original bytes unchanged to the client.

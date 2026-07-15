@@ -29,7 +29,8 @@ type SpendEvent struct {
 	Model     string
 	Usage     Usage
 	CostUSD   float64
-	Estimated bool // true when cost/tokens were estimated, not provider-reported
+	Estimated bool   // true when cost/tokens were estimated, not provider-reported
+	ReqHash   string // fingerprint of the request body, for loop/dedup detection
 	At        time.Time
 }
 

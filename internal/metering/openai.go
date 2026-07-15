@@ -63,7 +63,7 @@ func (p *openAIParser) final() (core.Usage, string, bool) {
 }
 
 // NewOpenAIMeter tees an OpenAI-compatible SSE response body.
-func NewOpenAIMeter(src io.ReadCloser, onDone func(core.Usage, string, bool)) io.ReadCloser {
+func NewOpenAIMeter(src io.ReadCloser, onDone Sink) io.ReadCloser {
 	return &meterReader{src: src, parser: &openAIParser{}, onDone: onDone}
 }
 

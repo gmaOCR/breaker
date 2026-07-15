@@ -87,7 +87,7 @@ Early but functional — all three core use cases are built and covered by end-t
 2. **Velocity guard** — `--max-per-min` / `--max-calls-per-min` trip *before* the absolute cap, catching loops early.
 3. **Rolling shared budget** — `breaker serve --daily/--hourly` + live dashboard + persistent journal (proven: 402 once the window budget is crossed).
 
-On the roadmap: trip notifications (webhook/desktop) and a `--strict` zero-overshoot mode. See [`docs/16-roadmap-nongoals.md`](docs/16-roadmap-nongoals.md).
+Also built: a loop guard (`--max-repeats`), trip notifications (`--notify-webhook` / `--notify-desktop`), and a size-based usage estimator (flagged `estimated`) for providers that report no usage. On the roadmap: a `--strict` zero-overshoot mode. See [`docs/16-roadmap-nongoals.md`](docs/16-roadmap-nongoals.md).
 
 ## Providers
 
