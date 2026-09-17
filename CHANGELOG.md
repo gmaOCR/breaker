@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
+## [Unreleased]
+
+### Security
+- Pinned toolchain bumped `go1.24.13` → `go1.27.1`, closing 11 reachable Go
+  standard-library advisories (`crypto/tls`, `crypto/x509`, `net/http`,
+  `net/url`, `net/textproto`, `os`) reported by `govulncheck`.
+
 ## [0.1.0] — 2026-07-15
 
 ### Added
