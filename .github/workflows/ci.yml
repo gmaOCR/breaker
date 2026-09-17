@@ -12,7 +12,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod # build with the toolchain pinned in go.mod
+          # setup-go reads the `go` directive, NOT a `toolchain` line. Keep
+          # go.mod free of a separate `toolchain` pin: otherwise setup-go
+          # installs one Go and GOTOOLCHAIN silently switches to another.
+          go-version-file: go.mod
       - run: go vet ./...
       - run: gofmt -l . | tee /dev/stderr | (! read)
       - run: go build ./...
@@ -21,13 +24,17 @@ jobs:
   vuln:
     runs-on: ubuntu-latest
     # Informational: breaker has zero third-party deps, so any finding is a Go
-    # stdlib advisory. A red result means "bump the Go toolchain", not a bug in
-    # our code — so it must not block the build.
+    # stdlib advisory. A red result means "bump the `go` directive in go.mod",
+    # not a bug in our code — so it must not block the build.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      # `go install pkg@latest` ignores our go.mod, so govulncheck is built with
+      # whatever Go x/vuln itself requires. If that is older than the Go we
+      # build with, it cannot type-check the newer stdlib sources and fails to
+      # load packages — hence the single Go version above.
       - run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - run: govulncheck ./...
