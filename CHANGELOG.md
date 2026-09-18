@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
+## [Unreleased]
+
+### Security
+- Built with Go 1.27.1 (was 1.24.13), closing 11 reachable Go standard-library
+  advisories (`crypto/tls`, `crypto/x509`, `net/http`, `net/url`,
+  `net/textproto`, `os`) reported by `govulncheck`.
+
+### Changed
+- `go.mod` now carries a single `go 1.27.1` directive instead of a `go` /
+  `toolchain` pair. `actions/setup-go` reads only the `go` directive, so the
+  split made CI install one Go and `GOTOOLCHAIN` switch to another — which in
+  turn built `govulncheck` against an older stdlib than the one it had to scan.
+
 ## [0.1.0] — 2026-07-15
 
 ### Added
