@@ -1,8 +1,17 @@
 name: release
 
+# Two entry points, one job. A human pushes a tag; the pricewatch job calls this
+# workflow directly, because a tag pushed with GITHUB_TOKEN does not trigger
+# workflows and the push entry point would never fire for it.
 on:
   push:
     tags: ["v*"]
+  workflow_call:
+    inputs:
+      tag:
+        description: Existing tag to build and publish.
+        required: true
+        type: string
 
 permissions:
   contents: write # required to create the Release and upload its assets
@@ -10,9 +19,12 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref }}
           # `make xbuild` stamps the binary via `git describe --tags`. The default
           # shallow checkout carries no tag history, so describe would fall back
           # to "dev" and we would publish binaries that misreport their version.
@@ -32,11 +44,11 @@ jobs:
           got=$(./dist/breaker-linux-amd64 version)
           echo "$got"
           case "$got" in
-            *"$GITHUB_REF_NAME"*) ;;
-            *) echo "::error::binaries report '$got', expected $GITHUB_REF_NAME"; exit 1 ;;
+            *"$TAG"*) ;;
+            *) echo "::error::binaries report '$got', expected $TAG"; exit 1 ;;
           esac
 
       - name: Publish the GitHub Release
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$TAG" dist/* --title "$TAG" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

@@ -24,7 +24,11 @@ Single Go binary, **standard library only**: no third-party dependencies; keep
 it that way.
 
 - `cmd/breaker`: CLI (`run`, `serve`, `version`)
+- `cmd/pricewatch`: repo tool, not shipped. Reconciles the embedded price table
+  with the vendor's published prices; run by a scheduled workflow.
 - `internal/{core,pricing,metering,proxy,breaker,policy,store,runner,dashboard,notify}`
+- `internal/pricing/upstream`: fetches and parses vendor pricing pages. Parsing
+  only; what may be applied is decided by `pricing.Reconcile`.
 - Docs: `docs/00-overview.md` → `docs/16`; architecture in `docs/01-architecture.md`.
 
 Design seam: the proxy depends on the small `proxy.Guard` interface, not a
@@ -60,6 +64,12 @@ a rolling-window guard. Add features behind that seam.
 
 `[TAG] scope: Title`, with `[ADD]` / `[FIX]` / `[REF]` / `[IMP]` / `[RM]`. Push to
 feature branches; never force-push `main`.
+
+One exception, deliberate: the `pricewatch` workflow commits
+`internal/pricing/prices.json` straight to `main`. It is a generated data file
+with a single writer, the job runs the full suite before committing, and every
+row is checked against the documented cache multipliers first. A price update
+that waits for a human review is a price update that does not happen.
 
 ## Go references (authoritative, community-proven)
 

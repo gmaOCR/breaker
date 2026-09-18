@@ -5,6 +5,33 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+- **Automated price tracking, with no click anywhere.**
+  `.github/workflows/pricewatch.yml` runs weekly, reconciles the embedded table
+  with the vendor's published prices, and when anything moved it runs the suite,
+  commits, derives the next patch version, tags it and publishes the release.
+  Responsibilities are split three ways: `internal/pricing/upstream` only
+  fetches and parses, `pricing.Reconcile` holds every rule about what may be
+  applied unattended, and `cmd/pricewatch` only wires them together.
+- The rules fail closed, because pricing a model too low hands the user the bill
+  breaker exists to prevent. Each row's input price is verified against the
+  documented cache multipliers (1.25x write, 0.1x read, 0.025x on Fable 5.1), so
+  a shifted column cannot pass as a plausible price. An entry that vanishes from
+  the page, or a glob that now covers models priced differently, refuses the
+  whole update and opens an issue. New models are added under their exact id,
+  never as a new glob. Non-Claude entries and the fallback are never touched.
+- `claude-mythos-5` and `claude-mythos-5-1`, found by the new tooling on its
+  first run against the live page.
+
+### Changed
+- Glob matching in `Table.lookup` now iterates in sorted order, so two
+  overlapping patterns resolve deterministically instead of by map order. This
+  also lets the reconciler prove it writes to the key the proxy actually reads.
+- `release.yml` gained a `workflow_call` entry point, because a tag created with
+  `GITHUB_TOKEN` does not trigger a workflow: the pricewatch job has to call the
+  publish step rather than rely on the tag push.
+- Every em dash in the repo is gone, including in four stderr strings.
+
 ## [0.2.0] - 2026-09-17
 
 ### Fixed

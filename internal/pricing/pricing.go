@@ -15,10 +15,13 @@ import (
 var defaultTable []byte
 
 type modelPrice struct {
-	Input      float64 `json:"input"`
-	Output     float64 `json:"output"`
-	CacheWrite float64 `json:"cache_write"`
-	CacheRead  float64 `json:"cache_read"`
+	Input  float64 `json:"input"`
+	Output float64 `json:"output"`
+	// Cache rates are omitted when zero so a provider that does not price cache
+	// separately stays absent from the table rather than appearing to charge
+	// nothing for it. omitempty affects writing only; reading is unchanged.
+	CacheWrite float64 `json:"cache_write,omitempty"`
+	CacheRead  float64 `json:"cache_read,omitempty"`
 }
 
 // Table is a dated set of per-model prices (USD per million tokens).
@@ -27,6 +30,37 @@ type Table struct {
 	Unit     string                `json:"unit"`
 	Models   map[string]modelPrice `json:"models"`
 	Fallback modelPrice            `json:"fallback"`
+}
+
+// LoadFile parses a price table file on its own, with no embedded table
+// underneath it. Load is for running breaker; this is for tools that read a
+// table in order to rewrite it, where merging would hide what the file says.
+func LoadFile(path string) (*Table, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("pricing: read %q: %w", path, err)
+	}
+	var t Table
+	if err := json.Unmarshal(raw, &t); err != nil {
+		return nil, fmt.Errorf("pricing: parse %q: %w", path, err)
+	}
+	if len(t.Models) == 0 {
+		return nil, fmt.Errorf("pricing: %q lists no models", path)
+	}
+	return &t, nil
+}
+
+// WriteFile renders the table back to disk, keys sorted by encoding/json so the
+// output is stable and diffs stay readable.
+func (t *Table) WriteFile(path string) error {
+	raw, err := json.MarshalIndent(t, "", "  ")
+	if err != nil {
+		return fmt.Errorf("pricing: render table: %w", err)
+	}
+	if err := os.WriteFile(path, append(raw, '\n'), 0o644); err != nil {
+		return fmt.Errorf("pricing: write %q: %w", path, err)
+	}
+	return nil
 }
 
 // Load parses the embedded table, then shallow-merges an optional override file
@@ -77,11 +111,13 @@ func (t *Table) lookup(model string) (modelPrice, bool) {
 	if p, ok := t.Models[model]; ok {
 		return p, true
 	}
-	// ponytail: glob match order is map-random; patterns are non-overlapping in
-	// practice. Sort keys if that ever stops being true.
-	for pat, p := range t.Models {
+	// Globs are tried in sorted order so the result is deterministic even if two
+	// patterns ever overlap. Reconcile's matchKey mirrors this exactly; if the
+	// two ever disagree, an unattended price update could write to a key the
+	// proxy does not actually read.
+	for _, pat := range sortedKeys(t.Models) {
 		if ok, _ := path.Match(pat, model); ok {
-			return p, true
+			return t.Models[pat], true
 		}
 	}
 	return t.Fallback, false
