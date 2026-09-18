@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-18
+
 ### Added
 - **Automated price tracking, with no click anywhere.**
   `.github/workflows/pricewatch.yml` runs weekly, reconciles the embedded table
