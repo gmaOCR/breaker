@@ -43,6 +43,13 @@ type Config struct {
 	OpenAIUpstream    string
 }
 
+// Default upstreams, used when a Config leaves one empty. Exported so the CLI
+// can show them as its flag defaults instead of an empty string.
+const (
+	DefaultAnthropicUpstream = "https://api.anthropic.com"
+	DefaultOpenAIUpstream    = "https://api.openai.com"
+)
+
 type ctxKey int
 
 const (
@@ -66,10 +73,10 @@ type Proxy struct {
 // New builds a Proxy bound to a Guard and pricing table.
 func New(guard Guard, prices *pricing.Table, cfg Config) (*Proxy, error) {
 	if cfg.AnthropicUpstream == "" {
-		cfg.AnthropicUpstream = "https://api.anthropic.com"
+		cfg.AnthropicUpstream = DefaultAnthropicUpstream
 	}
 	if cfg.OpenAIUpstream == "" {
-		cfg.OpenAIUpstream = "https://api.openai.com"
+		cfg.OpenAIUpstream = DefaultOpenAIUpstream
 	}
 	anth, err := url.Parse(cfg.AnthropicUpstream)
 	if err != nil {

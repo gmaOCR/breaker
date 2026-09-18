@@ -11,7 +11,7 @@ test:
 	go test ./...
 
 e2e:
-	go test ./test/ -run TestBreakerKills -v
+	go test ./test/ -v
 
 vet:
 	go vet ./...

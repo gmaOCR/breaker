@@ -50,13 +50,26 @@ func TestServeRollingBudgetRefuses(t *testing.T) {
 	base := fmt.Sprintf("http://127.0.0.1:%d", servePort)
 	waitReady(t, base+"/api/state")
 
-	// Each call meters ≈ $0.018; the 4th must be refused once spend ≥ $0.05.
-	want := []int{200, 200, 200, 402}
-	for i, w := range want {
-		code := post(t, base+"/v1/messages", `{"model":"claude-sonnet-5","stream":true}`)
-		if code != w {
-			t.Fatalf("request %d: HTTP %d; want %d", i+1, code, w)
+	// How many calls it takes to cross $0.05 depends on the pricing table, so
+	// loop rather than pin a count: what matters is that a 402 arrives at all and
+	// then sticks. Pinning the count made this test a hostage of the price of one
+	// model.
+	const maxCalls = 50
+	refusedAt := 0
+	for i := 1; i <= maxCalls && refusedAt == 0; i++ {
+		switch code := post(t, base+"/v1/messages", `{"model":"claude-sonnet-5","stream":true}`); code {
+		case http.StatusPaymentRequired:
+			refusedAt = i
+		case http.StatusOK:
+		default:
+			t.Fatalf("request %d: HTTP %d; want 200 or 402", i, code)
 		}
+	}
+	if refusedAt == 0 {
+		t.Fatalf("never refused in %d calls; the rolling window budget did not trip", maxCalls)
+	}
+	if code := post(t, base+"/v1/messages", `{"model":"claude-sonnet-5","stream":true}`); code != http.StatusPaymentRequired {
+		t.Fatalf("request %d: HTTP %d; want the 402 to stick once over budget", refusedAt+1, code)
 	}
 
 	// State reflects the spend.
