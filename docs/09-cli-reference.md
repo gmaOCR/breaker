@@ -22,7 +22,9 @@ child's environment (`ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`, `OPENAI_API_BASE`,
 | `--prices <file>` | — | Pricing override JSON (shallow-merged over the embedded table). |
 
 At least one of `--budget` / `--tokens` is required. Exit code is the child's own
-exit code, or `137` when the breaker killed the run.
+exit code, or `137` when the breaker killed the run. `breaker`'s own failures exit
+`2` on a usage error (missing or unparseable flags) and `1` on a startup failure
+(unreadable pricing override, port already in use, bad upstream URL).
 
 ```console
 breaker run --budget 2.50 -- claude -p "add tests"
@@ -46,7 +48,8 @@ share one port.
 | `--notify-webhook <url>` | — | POST a JSON alert to this URL when the budget trips. |
 | `--notify-desktop` | `false` | Desktop notification when the budget trips. |
 
-Set exactly one of `--daily` / `--hourly`. Once the window's spend ≥ budget, every
+Set `--daily` or `--hourly`. Giving both is accepted and `--hourly` wins; giving
+neither is a usage error. Once the window's spend ≥ budget, every
 request is refused with 402 until older spend ages out. Sessions are grouped by the
 `X-Breaker-Session` header, else a hash of the API key, else the remote address.
 

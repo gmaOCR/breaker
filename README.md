@@ -31,7 +31,7 @@ Or build from source: `git clone … && cd breaker && make build` → `./bin/bre
 
 ## Quickstart
 
-Wrap any command that talks to Anthropic or an OpenAI-compatible API. `breaker` injects the proxy's address into the child's environment (`ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL`) — the agent needs no changes.
+Wrap any command that talks to Anthropic or an OpenAI-compatible API. `breaker` injects the proxy's address into the child's environment (`ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`, `OPENAI_API_BASE`) along with a `BREAKER_SESSION` id, so the agent needs no changes.
 
 ```console
 # Cap a Claude Code run at $2:

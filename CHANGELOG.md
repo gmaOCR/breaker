@@ -5,6 +5,50 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-17
+
+### Fixed
+- **Pricing: `claude-opus-5` matched no pattern.** `claude-opus-4-[5-8]*` requires
+  the literal prefix `claude-opus-4-`, so every Opus 5 run priced at the $20/$80
+  fallback and was flagged `estimated`: the breaker tripped roughly four times too
+  early and reported a spend that was plainly wrong. Added `claude-opus-5*`.
+- **Pricing: `claude-sonnet-5` was billed at Sonnet 4.6 rates** ($3/$15 instead of
+  $2/$10), a 50% overcharge. Sonnet 5's introductory $2/$10 is now its standard
+  price.
+- **Pricing: Claude Fable 5.1 reads cache at 0.025x base**, not the usual 0.1x, so
+  it needs its own entry. An exact key beats the `claude-fable-5*` glob in
+  `Table.lookup`, which keeps the two disjoint.
+- `make e2e` ran only `TestBreakerKillsRunOverBudget`; its `-run` filter silently
+  skipped `TestServeRollingBudgetRefuses`, the only end-to-end proof that `serve`
+  refuses with 402 once the rolling window is spent.
+- `breaker` with no arguments printed a hand-maintained flag list that had drifted,
+  missing `--port`, all three velocity and loop guards, and both notification
+  flags, plus every `serve` flag. It now points at `breaker run -h` / `serve -h`,
+  which the `flag` package generates from the real flag sets.
+- `--anthropic-upstream` / `--openai-upstream` reported an empty default in `-h`
+  because the real value was only applied downstream in `proxy.New`. Both now
+  default to the exported `proxy.Default*Upstream` constants.
+
+### Added
+- `.github/workflows/release.yml`: pushing a `v*` tag runs the suite,
+  cross-compiles, verifies the binaries carry the tag's version, and publishes a
+  GitHub Release with all five artefacts.
+- Pricing regression tests: every model actually run must match a pattern rather
+  than fall through to the fallback, and Fable 5.1's cache-read rate is pinned.
+
+### Documentation
+- `docs/01-architecture.md` listed `notify` as roadmap although it ships, and
+  omitted the `Dedup` policy.
+- `docs/09-cli-reference.md` claimed `--daily` and `--hourly` were mutually
+  exclusive while the code lets `--hourly` win; it also documented only exit code
+  `137`, never `1` and `2`.
+- `docs/12-verification.md` quoted a trip message missing its
+  `($X spent) [policy]` suffix, never mentioned the `serve` end-to-end test, and
+  costed a mock call with the superseded Sonnet price.
+- `README.md` named two injected environment variables out of four.
+- `docs/15-release-versioning.md` walked through tagging `v0.1.0`, already
+  released, and predated the release workflow.
+
 ### Security
 - Built with Go 1.27.1 (was 1.24.13), closing 11 reachable Go standard-library
   advisories (`crypto/tls`, `crypto/x509`, `net/http`, `net/url`,

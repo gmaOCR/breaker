@@ -27,8 +27,8 @@ func cmdServe(args []string) int {
 	port := fs.Int("port", 8900, "listen port (proxy + dashboard share it)")
 	journal := fs.String("journal", "", "JSONL spend journal path (persists the rolling window across restarts)")
 	pricesF := fs.String("prices", "", "pricing override JSON")
-	anthUp := fs.String("anthropic-upstream", "", "override Anthropic upstream base URL")
-	oaiUp := fs.String("openai-upstream", "", "override OpenAI upstream base URL")
+	anthUp := fs.String("anthropic-upstream", proxy.DefaultAnthropicUpstream, "Anthropic upstream base URL")
+	oaiUp := fs.String("openai-upstream", proxy.DefaultOpenAIUpstream, "OpenAI upstream base URL")
 	notifyHook := fs.String("notify-webhook", "", "POST a JSON alert to this URL when the budget trips")
 	notifyDesk := fs.Bool("notify-desktop", false, "show a desktop notification when the budget trips")
 	fs.Usage = func() {

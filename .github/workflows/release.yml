@@ -1,0 +1,42 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # required to create the Release and upload its assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `make xbuild` stamps the binary via `git describe --tags`. The default
+          # shallow checkout carries no tag history, so describe would fall back
+          # to "dev" and we would publish binaries that misreport their version.
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          # Single `go` directive, no `toolchain` line, for the reason spelled
+          # out in ci.yml: setup-go reads only the directive.
+          go-version-file: go.mod
+      - run: make test
+      - run: make xbuild
+
+      # Publishing a mis-stamped binary is worse than not publishing: fail here,
+      # while the Release does not exist yet and the tag can simply be moved.
+      - name: Check the binaries are stamped with this tag
+        run: |
+          got=$(./dist/breaker-linux-amd64 version)
+          echo "$got"
+          case "$got" in
+            *"$GITHUB_REF_NAME"*) ;;
+            *) echo "::error::binaries report '$got', expected $GITHUB_REF_NAME"; exit 1 ;;
+          esac
+
+      - name: Publish the GitHub Release
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

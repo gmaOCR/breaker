@@ -46,7 +46,8 @@ func TestBreakerKillsRunOverBudget(t *testing.T) {
 		t.Fatal("mock did not report its address")
 	}
 
-	// Budget $0.05; each call meters ≈ $0.018, so it trips on the 3rd call.
+	// Budget $0.05; each call meters $0.012 (1000 in + 1000 out on Sonnet 5),
+	// so it trips on the 5th call.
 	cmd := exec.Command(breakerBin, "run", "--budget", "0.05", "--grace", "300ms",
 		"--anthropic-upstream", "http://"+mockAddr, "--", loopBin)
 	var stderr strings.Builder
