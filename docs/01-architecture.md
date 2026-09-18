@@ -1,22 +1,22 @@
-# 01 — Architecture
+# 01. Architecture
 
 Single Go binary, standard-library only. Packages under `internal/`:
 
 | Package | Responsibility |
 |---|---|
-| `core` | Shared domain types (`Usage`, `SpendEvent`, `TripReason`, `Provider`). No logic — breaks import cycles. |
+| `core` | Shared domain types (`Usage`, `SpendEvent`, `TripReason`, `Provider`). No logic; breaks import cycles. |
 | `pricing` | Embedded, dated price table + cost math. `Cost(model, usage) → (usd, matched)`; unknown model → high fallback + `matched=false`. |
 | `metering` | Extract token usage from proxied responses. Streaming (SSE) and non-streaming JSON, for Anthropic and OpenAI wire formats. |
 | `breaker` | The budget engine: accumulates spend, runs policies, fires a one-shot trip on a channel. |
 | `policy` | Pluggable trip checks: `HardCap` (USD/token budget), `Velocity` (rolling per-minute spend/call rate) and `Dedup` (identical requests repeating), the last two tripping before the cap. |
 | `proxy` | `httputil.ReverseProxy` that tees responses through `metering`, records to a `Guard`, and returns 402 once the guard disallows. |
 | `runner` | Launches the child in its own process group, injects the proxy env, and escalates SIGTERM→SIGKILL on trip. |
-| `store` | Rolling-window spend store for `serve` — in-memory events + optional append-only JSONL journal. |
+| `store` | Rolling-window spend store for `serve`: in-memory events + optional append-only JSONL journal. |
 | `dashboard` | Embedded one-page web UI for `serve` (live gauge, per-session spend, activity log, KILL button). |
 | `notify` | Trip notifications: JSON webhook POST and desktop popup, on both `run` and `serve`. Best effort, never affects enforcement. |
 
 The proxy depends on a small `Guard` interface (`Allowed() / Record()`), not a
-concrete engine — so `run` plugs in the one-shot `breaker.Engine` (which also
+concrete engine, so `run` plugs in the one-shot `breaker.Engine` (which also
 drives the killer via its trip channel) and `serve` plugs in a rolling-window
 guard, sharing all the metering/pricing/proxy code.
 
@@ -53,5 +53,5 @@ child process ──ANTHROPIC_BASE_URL/OPENAI_BASE_URL──▶ in-process proxy
 - **OpenAI SSE**: usage only appears in a final chunk when the request carries
   `stream_options.include_usage=true`; the proxy injects that field. If a server
   still reports no usage, the run is flagged `estimated`.
-- **Pricing** never returns zero for real usage — a zero price would mean the
+- **Pricing** never returns zero for real usage: a zero price would mean the
   breaker never trips, which would defeat the entire product.

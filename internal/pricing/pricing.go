@@ -61,7 +61,7 @@ func Load(override string) (*Table, error) {
 
 // Cost returns the USD cost of usage for model. The bool is false when no model
 // pattern matched and the (deliberately high) fallback price was used, so callers
-// flag the result as estimated. Cost never returns zero for real usage — a zero
+// flag the result as estimated. Cost never returns zero for real usage, a zero
 // price would mean the breaker never trips, the one bug that kills the product.
 func (t *Table) Cost(model string, u core.Usage) (float64, bool) {
 	p, matched := t.lookup(model)

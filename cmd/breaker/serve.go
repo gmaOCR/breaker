@@ -84,7 +84,7 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	base := "http://" + ln.Addr().String()
-	fmt.Fprintf(os.Stderr, "breaker: serving (%s budget $%.2f) — dashboard %s\n", label, budget, base+"/")
+	fmt.Fprintf(os.Stderr, "breaker: serving (%s budget $%.2f), dashboard %s\n", label, budget, base+"/")
 	fmt.Fprintf(os.Stderr, "point your agent at it: export ANTHROPIC_BASE_URL=%s\n", base)
 	if err := http.Serve(ln, mux); err != nil {
 		fmt.Fprintf(os.Stderr, "breaker: %v\n", err)

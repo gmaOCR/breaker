@@ -1,12 +1,12 @@
-# 11 — Config reference
+# 11. Config reference
 
-Full flag tables are in [09 — CLI reference](09-cli-reference.md). This page covers
+Full flag tables are in [09. CLI reference](09-cli-reference.md). This page covers
 configuration that isn't a flag.
 
 ## Environment variables the proxy injects (run mode)
 
 When `breaker run` launches the child, it sets these so the agent talks to the
-proxy instead of the real API — no agent code change:
+proxy instead of the real API; no agent code change:
 
 | Variable | Value |
 |---|---|
@@ -26,10 +26,10 @@ host, or a mock for testing).
 
 ## Pricing override
 
-`--prices <file>` — see [03 — pricing](03-pricing.md).
+`--prices <file>`; see [03. pricing](03-pricing.md).
 
 ## API keys
 
 `breaker` does not manage keys. The agent's existing `ANTHROPIC_API_KEY` /
-`OPENAI_API_KEY` are forwarded untouched to the upstream — see
-[14 — security & keys](14-security-keys.md).
+`OPENAI_API_KEY` are forwarded untouched to the upstream; see
+[14. security & keys](14-security-keys.md).

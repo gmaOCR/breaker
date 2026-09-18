@@ -1,4 +1,4 @@
-# 02 — Metering
+# 02. Metering
 
 `breaker` derives spend from the tokens each response actually reports. The proxy
 tees the response body through a provider-specific parser (`internal/metering`)
@@ -25,7 +25,7 @@ completion_tokens}` directly (`ParseOpenAIJSON`).
 ## Fallback estimate (never silent-zero)
 
 If a completed response reports **no** usage (e.g. an OpenAI-compatible server that
-ignores `include_usage`), the proxy estimates from raw byte sizes —
-`EstimateUsage(reqBytes, respBytes)` at ~4 bytes/token — and flags the event
+ignores `include_usage`), the proxy estimates from raw byte sizes with
+`EstimateUsage(reqBytes, respBytes)` at ~4 bytes/token, and flags the event
 `Estimated`. This is deliberately non-zero: a response that produced output is
 always metered, so the breaker still trips. Estimation is labelled, never hidden.

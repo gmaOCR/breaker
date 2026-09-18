@@ -217,7 +217,7 @@ func (p *Proxy) warnUnknown(model string) {
 		return
 	}
 	p.warned[model] = true
-	fmt.Fprintf(os.Stderr, "breaker: unknown model %q — pricing with the high fallback; spend is estimated\n", model)
+	fmt.Fprintf(os.Stderr, "breaker: unknown model %q, pricing with the high fallback; spend is estimated\n", model)
 }
 
 // sessionFor attributes a request to a budget/session. Run mode pins one
@@ -256,7 +256,7 @@ func providerForPath(path string) core.Provider {
 func writeBudgetError(w http.ResponseWriter, prov core.Provider, reason core.TripReason) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusPaymentRequired)
-	msg := "breaker: budget exceeded — request refused (" + reason.Message + ")"
+	msg := "breaker: budget exceeded, request refused (" + reason.Message + ")"
 	var body any
 	if prov == core.ProviderOpenAI {
 		body = map[string]any{"error": map[string]any{

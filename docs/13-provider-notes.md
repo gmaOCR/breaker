@@ -1,10 +1,10 @@
-# 13 — Provider notes
+# 13. Provider notes
 
 ## Anthropic (Messages API)
 
 - Path: `/v1/messages`. Auth header: `x-api-key`.
 - Usage is emitted in the SSE stream (`message_start` + `message_delta`) and in
-  non-streaming JSON. `breaker` reads it directly — no request modification.
+  non-streaming JSON. `breaker` reads it directly; no request modification.
 - Agents set `ANTHROPIC_BASE_URL` to the proxy; the SDK appends `/v1/messages`.
 
 ## OpenAI-compatible (Chat Completions)
@@ -14,7 +14,7 @@
 - Streaming responses only include usage when the request carries
   `stream_options.include_usage=true`; `breaker` injects it. Servers that still
   omit usage fall back to the size estimator (flagged `estimated`).
-- Works with any OpenAI-compatible host — set `--openai-upstream` (e.g. a local
+- Works with any OpenAI-compatible host: set `--openai-upstream` (e.g. a local
   model server, Together, Groq). Agents set `OPENAI_BASE_URL` to the proxy `/v1`.
 
 ## Re-verifying the wire format

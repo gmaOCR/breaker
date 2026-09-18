@@ -1,4 +1,4 @@
-# 09 — CLI reference
+# 09. CLI reference
 
 ## `breaker run [flags] -- <command> [args...]`
 
@@ -17,9 +17,9 @@ child's environment (`ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`, `OPENAI_API_BASE`,
 | `--max-per-min <usd>` | `0` (off) | Velocity guard: trip if spend exceeds this USD/minute (fires before the absolute cap). |
 | `--max-calls-per-min <n>` | `0` (off) | Velocity guard: trip if calls exceed this per minute. |
 | `--max-repeats <n>` | `0` (off) | Loop guard: trip if the same request repeats more than this per minute. |
-| `--notify-webhook <url>` | — | POST a JSON alert to this URL on trip. |
+| `--notify-webhook <url>` | none | POST a JSON alert to this URL on trip. |
 | `--notify-desktop` | `false` | Show a desktop notification on trip (`notify-send` / `osascript`). |
-| `--prices <file>` | — | Pricing override JSON (shallow-merged over the embedded table). |
+| `--prices <file>` | none | Pricing override JSON (shallow-merged over the embedded table). |
 
 At least one of `--budget` / `--tokens` is required. Exit code is the child's own
 exit code, or `137` when the breaker killed the run. `breaker`'s own failures exit
@@ -42,10 +42,10 @@ share one port.
 | `--daily <usd>` | `0` | Rolling 24h budget. |
 | `--hourly <usd>` | `0` | Rolling 1h budget (takes precedence over `--daily`). |
 | `--port <n>` | `8900` | Listen port (proxy + dashboard). |
-| `--journal <file>` | — | JSONL spend journal; persists the rolling window across restarts. |
-| `--prices <file>` | — | Pricing override JSON. |
+| `--journal <file>` | none | JSONL spend journal; persists the rolling window across restarts. |
+| `--prices <file>` | none | Pricing override JSON. |
 | `--anthropic-upstream` / `--openai-upstream` | real hosts | Override upstreams. |
-| `--notify-webhook <url>` | — | POST a JSON alert to this URL when the budget trips. |
+| `--notify-webhook <url>` | none | POST a JSON alert to this URL when the budget trips. |
 | `--notify-desktop` | `false` | Desktop notification when the budget trips. |
 
 Set `--daily` or `--hourly`. Giving both is accepted and `--hourly` wins; giving

@@ -8,7 +8,7 @@ import (
 	"github.com/gmaOCR/breaker/internal/core"
 )
 
-// Velocity trips EARLY — before the absolute budget cap — when spend or call
+// Velocity trips EARLY, before the absolute budget cap, when spend or call
 // rate over a rolling one-minute window spikes, catching runaway loops before
 // they run up the full budget. A zeroed threshold disables that check.
 type Velocity struct {

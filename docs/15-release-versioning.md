@@ -1,4 +1,4 @@
-# 15 — Release & versioning
+# 15. Release & versioning
 
 ## Versioning
 
@@ -39,7 +39,7 @@ green release.
 ## Updating prices
 
 Prices drift. Bump `internal/pricing/prices.json` (`version` = the date) and cut a
-patch release. No code change is required — the table is embedded and glob-matched.
+patch release. No code change is required, the table is embedded and glob-matched.
 Users can also override without upgrading via `--prices`.
 
 ## Changelog

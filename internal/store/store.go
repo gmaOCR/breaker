@@ -76,7 +76,7 @@ func (s *Store) Add(ev Event) {
 			_, _ = s.f.Write(append(b, '\n'))
 		}
 	}
-	// ponytail: journal is append-only and only compacted on startup — it grows
+	// ponytail: journal is append-only and only compacted on startup, it grows
 	// unbounded within a single long-lived process. Add size-triggered rewrite
 	// if a serve process is meant to run for months.
 }

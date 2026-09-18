@@ -1,6 +1,6 @@
 // Package notify emits a one-shot alert when the breaker trips: an optional
 // webhook POST and/or a best-effort desktop notification. All sends are
-// best-effort — failures never affect enforcement.
+// best-effort, failures never affect enforcement.
 package notify
 
 import (

@@ -1,4 +1,4 @@
-# 06 — Kill path (run mode)
+# 06. Kill path (run mode)
 
 `breaker run` wraps the agent as a child process and terminates it when the
 breaker trips.
@@ -6,7 +6,7 @@ breaker trips.
 ## Mechanism (POSIX)
 
 - The child is started with `SysProcAttr{Setpgid: true}`, so it leads its own
-  process group — killing the group takes down anything the agent spawned too.
+  process group; killing the group takes down anything the agent spawned too.
 - On trip, `runner` signals the **group**: `SIGTERM`, then after `--grace`
   (default 3s), `SIGKILL`. A negative pid (`-pgid`) targets the whole group.
 - The run's exit code is the child's own code, or **137** when the breaker killed
