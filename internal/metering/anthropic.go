@@ -38,7 +38,7 @@ func (p *anthropicParser) feedLine(line []byte) {
 	}
 	var ev anthropicEvent
 	if json.Unmarshal(line[len(pfx):], &ev) != nil {
-		return // ping/keepalive or partial — ignore
+		return // ping/keepalive or partial, ignore
 	}
 	if ev.Message != nil {
 		if ev.Message.Model != "" {

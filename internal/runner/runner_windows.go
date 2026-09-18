@@ -15,7 +15,7 @@ import (
 // TripExitCode is the exit code returned when a run is killed by the breaker.
 const TripExitCode = 137
 
-// Run on Windows kills only the direct child — no process-group support here.
+// Run on Windows kills only the direct child, no process-group support here.
 // Documented best-effort limitation; POSIX gets the full group kill.
 func Run(ctx context.Context, argv []string, env []string, trips <-chan core.TripReason, grace time.Duration) (int, core.TripReason, error) {
 	cmd := exec.Command(argv[0], argv[1:]...)

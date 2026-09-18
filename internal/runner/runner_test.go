@@ -48,6 +48,6 @@ func TestRunTripKillsChild(t *testing.T) {
 		t.Fatalf("reason=%q", reason.Message)
 	}
 	if time.Since(start) > 5*time.Second {
-		t.Fatal("kill took far too long — sleep 30 was not terminated")
+		t.Fatal("kill took far too long, sleep 30 was not terminated")
 	}
 }

@@ -28,7 +28,7 @@ func TestKillSnapshotAllowed(t *testing.T) {
 		t.Fatalf("snapshot=%+v", snap)
 	}
 
-	// Kill is idempotent — a second call must not overwrite the reason.
+	// Kill is idempotent, a second call must not overwrite the reason.
 	e.Kill("second")
 	if e.Reason().Message == "second" {
 		t.Fatal("second Kill should be a no-op")

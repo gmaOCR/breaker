@@ -1,4 +1,4 @@
-# 10 — Dashboard (serve mode)
+# 10. Dashboard (serve mode)
 
 `breaker serve` serves a one-page web UI on the same port as the proxy. The proxy
 handles `/v1/*`; the dashboard handles everything else.
@@ -9,7 +9,7 @@ handles `/v1/*`; the dashboard handles everything else.
 |---|---|---|
 | `/` | GET | The dashboard page (embedded HTML/CSS/JS via `go:embed`). |
 | `/api/state` | GET | JSON snapshot: window label, budget, spend, killed flag, per-session breakdown, recent activity. |
-| `/kill` | POST | Manual trip — refuse all further requests. Returns 204. |
+| `/kill` | POST | Manual trip, refuse all further requests. Returns 204. |
 
 ## UI
 

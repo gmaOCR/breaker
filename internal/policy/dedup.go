@@ -9,7 +9,7 @@ import (
 )
 
 // Dedup trips when the same request (by body fingerprint) repeats more than
-// MaxRepeats times within a rolling minute — a strong loop signal that catches
+// MaxRepeats times within a rolling minute, a strong loop signal that catches
 // tight retry loops even when their per-call cost is small. Zero disables it.
 type Dedup struct {
 	MaxRepeats int

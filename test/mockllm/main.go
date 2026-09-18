@@ -1,5 +1,5 @@
 // Command mockllm is a fake upstream that speaks Anthropic SSE with fixed, known
-// token usage — it lets the e2e test drive the breaker offline, with no API key.
+// token usage, it lets the e2e test drive the breaker offline, with no API key.
 // Each response reports input=1000, output=1000 tokens (≈ $0.018 on Sonnet-5).
 package main
 

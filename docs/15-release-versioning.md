@@ -1,4 +1,4 @@
-# 15 — Release & versioning
+# 15. Release & versioning
 
 ## Versioning
 
@@ -38,9 +38,20 @@ green release.
 
 ## Updating prices
 
-Prices drift. Bump `internal/pricing/prices.json` (`version` = the date) and cut a
-patch release. No code change is required — the table is embedded and glob-matched.
-Users can also override without upgrading via `--prices`.
+Prices drift, so this is automated end to end. `.github/workflows/pricewatch.yml`
+runs weekly: it reconciles `internal/pricing/prices.json` with the vendor's
+published prices, and when anything moved it runs the suite, commits the table,
+derives the next patch version from the latest tag, tags it, and publishes the
+release. No click anywhere. The rules that make that safe are in
+[03. pricing](03-pricing.md); when any of them refuses, the job opens an issue
+and changes nothing.
+
+Note the plumbing: the publish step is *called* from the pricewatch workflow
+rather than left to the tag push, because a tag created with `GITHUB_TOKEN` does
+not trigger workflows. A cascade would look right and never fire.
+
+To do it by hand anyway, `go run ./cmd/pricewatch -write` then tag as above.
+Users can also override without upgrading at all, via `--prices`.
 
 ## Changelog
 

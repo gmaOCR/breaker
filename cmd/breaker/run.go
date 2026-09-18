@@ -92,7 +92,7 @@ func cmdRun(args []string) int {
 		"BREAKER_SESSION="+string(session),
 	)
 
-	fmt.Fprintf(os.Stderr, "breaker: guarding run (cap %s) — proxy at %s\n", capLabel(*budget, *tokens), base)
+	fmt.Fprintf(os.Stderr, "breaker: guarding run (cap %s), proxy at %s\n", capLabel(*budget, *tokens), base)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -105,11 +105,11 @@ func cmdRun(args []string) int {
 	snap := engine.Snapshot()
 	est := ""
 	if snap.Estimated {
-		est = " (estimated — some usage was not provider-reported)"
+		est = " (estimated, some usage was not provider-reported)"
 	}
 	fmt.Fprintf(os.Stderr, "breaker: spent $%.4f over %d tokens%s\n", snap.SpentUSD, snap.Tokens, est)
 	if snap.Tripped {
-		fmt.Fprintf(os.Stderr, "breaker: TRIPPED — %s [%s]\n", snap.Reason.Message, snap.Reason.Policy)
+		fmt.Fprintf(os.Stderr, "breaker: TRIPPED, %s [%s]\n", snap.Reason.Message, snap.Reason.Policy)
 		notify.New(*notifyHook, *notifyDesk).OnTrip(snap.Reason)
 		if code == 0 {
 			code = runner.TripExitCode // child slipped out via 402 before the kill landed

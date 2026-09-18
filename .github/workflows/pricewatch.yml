@@ -1,0 +1,115 @@
+name: pricewatch
+
+# Keeps the embedded price table in step with the vendor's published prices,
+# unattended. The safety rules live in (*pricing.Table).Reconcile, not here: this
+# workflow only reacts to pricewatch's exit code.
+#
+#   0  nothing to do
+#   3  the table moved, so test it, commit it, tag it, release it
+#   2  refused, a person has to look; open an issue and stop
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write # commit the new table and push the tag
+  issues: write # report a page we can no longer parse
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.apply.outputs.released }}
+      tag: ${{ steps.apply.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the next version number comes from the tag history
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check the published prices
+        id: check
+        run: |
+          go build -o /tmp/pricewatch ./cmd/pricewatch
+          set +e
+          /tmp/pricewatch -write > /tmp/pricewatch.out 2>&1
+          code=$?
+          set -e
+          cat /tmp/pricewatch.out
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Report a page we can no longer trust
+        if: steps.check.outputs.code == '2'
+        run: |
+          open=$(gh issue list --state open --search 'pricewatch in:title' --json number --jq '.[].number')
+          if [ -z "$open" ]; then
+            gh issue create \
+              --title "pricewatch: the pricing page can no longer be reconciled" \
+              --body "The scheduled price check refused to update the table. Until this is fixed the embedded prices will drift.
+
+          \`\`\`
+          $(cat /tmp/pricewatch.out)
+          \`\`\`
+
+          Run \`go run ./cmd/pricewatch\` locally to reproduce."
+          fi
+          echo "::error::pricewatch refused the update; see the pricewatch issue"
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fail on anything other than a clean result
+        if: steps.check.outputs.code != '0' && steps.check.outputs.code != '3'
+        run: exit 1
+
+      # The table is a generated data file and this is the only writer, so the
+      # job commits straight to main once its own tests pass. AGENTS.md notes the
+      # exception to the feature-branch rule.
+      - name: Test, commit, tag
+        id: apply
+        if: steps.check.outputs.code == '3'
+        run: |
+          make test
+
+          # Exactly three numeric fields, or stop. A tag like "v1.2" would
+          # otherwise reuse the minor as the patch and invent a version.
+          latest=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v0.0.0)
+          IFS=. read -r major minor patch extra <<<"${latest#v}"
+          if [ -n "$extra" ] || [ -z "$major" ] || [ -z "$minor" ] || [ -z "$patch" ] ||
+            case "$major$minor$patch" in *[!0-9]*) true ;; *) false ;; esac; then
+            echo "::error::cannot derive the next version from tag '$latest'"
+            exit 1
+          fi
+          tag="v$major.$minor.$((patch + 1))"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add internal/pricing/prices.json
+          git commit -F - <<EOF
+          [FIX] pricing: follow the published prices ($tag)
+
+          Applied by the scheduled pricewatch job. Every row was checked against
+          the documented cache multipliers before being written, and the table's
+          own tests passed.
+
+          $(cat /tmp/pricewatch.out)
+          EOF
+          git push origin HEAD:main
+          git tag "$tag"
+          git push origin "$tag"
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "released=true" >> "$GITHUB_OUTPUT"
+
+  # Called directly rather than left to the tag push: a tag created with
+  # GITHUB_TOKEN does not trigger release.yml's own push trigger.
+  publish:
+    needs: watch
+    if: needs.watch.outputs.released == 'true'
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.watch.outputs.tag }}

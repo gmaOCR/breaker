@@ -5,6 +5,33 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+- **Automated price tracking, with no click anywhere.**
+  `.github/workflows/pricewatch.yml` runs weekly, reconciles the embedded table
+  with the vendor's published prices, and when anything moved it runs the suite,
+  commits, derives the next patch version, tags it and publishes the release.
+  Responsibilities are split three ways: `internal/pricing/upstream` only
+  fetches and parses, `pricing.Reconcile` holds every rule about what may be
+  applied unattended, and `cmd/pricewatch` only wires them together.
+- The rules fail closed, because pricing a model too low hands the user the bill
+  breaker exists to prevent. Each row's input price is verified against the
+  documented cache multipliers (1.25x write, 0.1x read, 0.025x on Fable 5.1), so
+  a shifted column cannot pass as a plausible price. An entry that vanishes from
+  the page, or a glob that now covers models priced differently, refuses the
+  whole update and opens an issue. New models are added under their exact id,
+  never as a new glob. Non-Claude entries and the fallback are never touched.
+- `claude-mythos-5` and `claude-mythos-5-1`, found by the new tooling on its
+  first run against the live page.
+
+### Changed
+- Glob matching in `Table.lookup` now iterates in sorted order, so two
+  overlapping patterns resolve deterministically instead of by map order. This
+  also lets the reconciler prove it writes to the key the proxy actually reads.
+- `release.yml` gained a `workflow_call` entry point, because a tag created with
+  `GITHUB_TOKEN` does not trigger a workflow: the pricewatch job has to call the
+  publish step rather than rely on the tag push.
+- Every em dash in the repo is gone, including in four stderr strings.
+
 ## [0.2.0] - 2026-09-17
 
 ### Fixed
@@ -60,24 +87,24 @@ All notable changes to this project are documented here. Format loosely follows
   split made CI install one Go and `GOTOOLCHAIN` switch to another, which in
   turn built `govulncheck` against an older stdlib than the one it had to scan.
 
-## [0.1.0] — 2026-07-15
+## [0.1.0] - 2026-07-15
 
 ### Added
-- `breaker run` — hard per-run budget (`--budget` USD and/or `--tokens`); the
+- `breaker run`: hard per-run budget (`--budget` USD and/or `--tokens`); the
   wrapped process is SIGKILLed when the cap trips.
 - Velocity guard (`--max-per-min`, `--max-calls-per-min`) and loop guard
   (`--max-repeats`, by request-body fingerprint) that trip *before* the absolute
   cap on a spend/call-rate spike or identical-request repetition.
-- `breaker serve` — long-lived proxy enforcing a rolling per-window budget
+- `breaker serve`: long-lived proxy enforcing a rolling per-window budget
   (`--daily` / `--hourly`) shared across runs, with an append-only JSONL journal
   (`--journal`) so the window survives restarts.
 - One-page embedded web dashboard (live gauge, per-session breakdown, activity
   log, manual KILL button) served by `breaker serve`.
-- Trip notifications — `--notify-webhook` (JSON POST) and `--notify-desktop`, on
-  both `run` and `serve` — plus a one-line post-run spend summary.
+- Trip notifications: `--notify-webhook` (JSON POST) and `--notify-desktop`, on
+  both `run` and `serve`, plus a one-line post-run spend summary.
 - Metering reverse proxy for the Anthropic Messages API and OpenAI-compatible
   Chat Completions (streaming + non-streaming), with a size-based usage estimator
-  (flagged `estimated`) when a provider reports none — never a silent zero.
+  (flagged `estimated`) when a provider reports none; never a silent zero.
 - Embedded, dated pricing table with per-model glob matching and a conservative
   high fallback for unknown models (with a one-time stderr warning).
 - Test suite across all logic packages (unit) plus end-to-end proofs: a runaway
